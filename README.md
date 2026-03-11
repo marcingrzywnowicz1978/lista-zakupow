@@ -1,0 +1,2 @@
+# lista-zakupow
+lista-zakupow
