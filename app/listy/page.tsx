@@ -51,12 +51,15 @@ export default function Listy() {
   return (
     <main style={{minHeight:"100vh",background:"#f7f7f7",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
       <div style={{background:"white",padding:"52px 20px 16px",borderBottom:"1px solid #f0f0f0"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",maxWidth:"500px",margin:"0 auto 16px"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",maxWidth:"500px",margin:"0 auto 16px"}}>
           <div>
             <p style={{fontSize:"13px",color:"#999"}}>Cześć, {user?.displayName?.split(" ")[0]} 👋</p>
             <h1 style={{fontSize:"24px",fontWeight:"800",color:"#1a1a1a",letterSpacing:"-0.5px"}}>Moje Listy</h1>
           </div>
-          <button onClick={() => signOut(auth)} style={{background:"#f5f5f5",border:"none",borderRadius:"12px",padding:"8px 14px",fontSize:"13px",fontWeight:"600",color:"#555",cursor:"pointer"}}>Wyloguj</button>
+          <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+            <button onClick={() => router.push("/produkty")} style={{background:"#f0fdf4",border:"none",borderRadius:"12px",padding:"8px 14px",fontSize:"13px",fontWeight:"600",color:"#2e7d32",cursor:"pointer"}}>📦 Baza</button>
+            <button onClick={() => signOut(auth)} style={{background:"#f5f5f5",border:"none",borderRadius:"12px",padding:"8px 14px",fontSize:"13px",fontWeight:"600",color:"#555",cursor:"pointer"}}>Wyloguj</button>
+          </div>
         </div>
         <div style={{maxWidth:"500px",margin:"0 auto",background:"#f5f5f5",borderRadius:"14px",padding:"12px 16px",display:"flex",alignItems:"center",gap:"10px"}}>
           <span style={{fontSize:"16px"}}>🔍</span>
