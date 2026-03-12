@@ -3,11 +3,15 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, query, where } from "firebase/firestore";
-import { PRODUKTY_BAZA, ProduktBaza } from "@/lib/produktyBaza";
+import { PRODUKTY_BAZA } from "@/lib/produktyBaza";
 
-interface ProduktEdytowalny extends ProduktBaza {
+interface ProduktEdytowalny {
   id?: string;
   uid?: string;
+  nazwa: string;
+  kategoria: string;
+  jednostka: string;
+  cena: number;
   wbudowany?: boolean;
 }
 
@@ -23,7 +27,7 @@ export default function Produkty() {
   const [filtrKat, setFiltrKat] = useState("Wszystkie");
   const [edytowany, setEdytowany] = useState<ProduktEdytowalny | null>(null);
   const [pokazForm, setPokazForm] = useState(false);
-  const [nowyProdukt, setNowyProdukt] = useState<ProduktBaza>({ nazwa:"", kategoria:"Inne", jednostka:"szt.", cena:0 });
+  const [nowyProdukt, setNowyProdukt] = useState<ProduktEdytowalny>({ nazwa:"", kategoria:"Inne", jednostka:"szt.", cena:0 });
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((u) => {
@@ -46,7 +50,7 @@ export default function Produkty() {
     const nazwyWlasne = new Set(wlasneProdukty.map(p => p.nazwa.toLowerCase()));
     const wbudowane = PRODUKTY_BAZA
       .filter(p => !nazwyWlasne.has(p.nazwa.toLowerCase()))
-      .map(p => ({ ...p, wbudowany: true }));
+      .map(p => ({ ...p, wbudowany: true } as ProduktEdytowalny));
     return [...wlasneProdukty, ...wbudowane];
   }, [wlasneProdukty]);
 
@@ -80,9 +84,7 @@ export default function Produkty() {
   };
 
   const usunProdukt = async (p: ProduktEdytowalny) => {
-    if (p.id) {
-      await deleteDoc(doc(db, "produktyUzytkownika", p.id));
-    }
+    if (p.id) await deleteDoc(doc(db, "produktyUzytkownika", p.id));
     setEdytowany(null);
   };
 
@@ -105,7 +107,7 @@ export default function Produkty() {
         <div style={{display:"flex",alignItems:"center",gap:"12px",maxWidth:"500px",margin:"0 auto 16px"}}>
           <button onClick={() => router.push("/listy")} style={{width:"36px",height:"36px",background:"#f5f5f5",border:"none",borderRadius:"12px",fontSize:"20px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
           <h1 style={{fontSize:"20px",fontWeight:"800",color:"#1a1a1a",flex:1,letterSpacing:"-0.5px"}}>Baza produktów</h1>
-          <span style={{fontSize:"13px",color:"#aaa"}}>{przefiltrowane.length} produktów</span>
+          <span style={{fontSize:"13px",color:"#aaa"}}>{przefiltrowane.length} prod.</span>
         </div>
         <div style={{maxWidth:"500px",margin:"0 auto 10px",background:"#f5f5f5",borderRadius:"14px",padding:"12px 16px",display:"flex",alignItems:"center",gap:"10px"}}>
           <span>🔍</span>
@@ -124,7 +126,7 @@ export default function Produkty() {
 
       <div style={{maxWidth:"500px",margin:"0 auto",padding:"16px"}}>
         {przefiltrowane.map((p, i) => (
-          <div key={p.id || i} onClick={() => setEdytowany({...p})}
+          <div key={p.id ?? i} onClick={() => setEdytowany({...p})}
             style={{background:"white",borderRadius:"16px",padding:"14px 16px",display:"flex",alignItems:"center",gap:"12px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",marginBottom:"8px",cursor:"pointer"}}>
             <div style={{width:"42px",height:"42px",background:"#f5f5f5",borderRadius:"12px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",flexShrink:0}}>
               {KAT_EMOJI[p.kategoria] || "📦"}
@@ -135,8 +137,7 @@ export default function Produkty() {
             </div>
             <div style={{textAlign:"right"}}>
               {p.cena > 0 && <div style={{fontSize:"14px",fontWeight:"700",color:"#2e7d32"}}>{p.cena.toFixed(2)} zł</div>}
-              {p.wbudowany && <div style={{fontSize:"10px",color:"#ccc",marginTop:"2px"}}>wbudowany</div>}
-              {!p.wbudowany && <div style={{fontSize:"10px",color:"#4caf50",marginTop:"2px"}}>własny</div>}
+              {p.wbudowany ? <div style={{fontSize:"10px",color:"#ccc",marginTop:"2px"}}>wbudowany</div> : <div style={{fontSize:"10px",color:"#4caf50",marginTop:"2px"}}>własny</div>}
             </div>
           </div>
         ))}
