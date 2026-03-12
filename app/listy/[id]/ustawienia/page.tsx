@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
-import { doc, onSnapshot, collection, addDoc, query, where, getDocs, deleteDoc } from "firebase/firestore";
+import { doc, setDoc, onSnapshot, collection, query, where, getDocs, deleteDoc } from "firebase/firestore";
 
 interface Zaproszenie {
   id: string;
@@ -53,7 +53,8 @@ export default function Ustawienia() {
     if (lista?.uzytkownicy?.includes(email)) { setBlad("Ta osoba już ma dostęp"); return; }
     const juzZaproszona = zaproszenia.find(z => z.email === email && z.status === "oczekuje");
     if (juzZaproszona) { setBlad("Zaproszenie już zostało wysłane"); return; }
-    await addDoc(collection(db, "zaproszenia"), {
+    const zaproszenieId = `${id}_${email.trim().toLowerCase()}`;
+    await setDoc(doc(db, "zaproszenia", zaproszenieId), {
       listaId: id,
       listaNazwa: lista?.nazwa,
       wlascicielEmail: user.email,
