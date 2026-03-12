@@ -67,14 +67,14 @@ export default function Listy() {
             <h1 style={{fontSize:"24px",fontWeight:"800",color:"#1a1a1a",letterSpacing:"-0.5px"}}>Moje Listy</h1>
           </div>
           <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
-            <button onClick={() => router.push("/zaproszenia")} style={{position:"relative",background:"#f5f5f5",border:"none",borderRadius:"12px",padding:"8px 14px",fontSize:"13px",fontWeight:"600",color:"#555",cursor:"pointer"}}>
+            <button onClick={() => router.push("/zaproszenia")} style={{position:"relative",background:"#f5f5f5",border:"none",borderRadius:"12px",padding:"8px 14px",fontSize:"13px",fontWeight:"600",color:"#555",cursor:"pointer",WebkitUserSelect:"none"}}>
               📬
               {liczbZaproszen > 0 && (
                 <span style={{position:"absolute",top:"-4px",right:"-4px",background:"#e53935",color:"white",borderRadius:"50%",width:"18px",height:"18px",fontSize:"11px",fontWeight:"800",display:"flex",alignItems:"center",justifyContent:"center"}}>{liczbZaproszen}</span>
               )}
             </button>
-            <button onClick={() => router.push("/produkty")} style={{background:"#f0fdf4",border:"none",borderRadius:"12px",padding:"8px 14px",fontSize:"13px",fontWeight:"600",color:"#2e7d32",cursor:"pointer"}}>📦 Baza</button>
-            <button onClick={() => signOut(auth)} style={{background:"#f5f5f5",border:"none",borderRadius:"12px",padding:"8px 14px",fontSize:"13px",fontWeight:"600",color:"#555",cursor:"pointer"}}>Wyloguj</button>
+            <button onClick={() => router.push("/produkty")} style={{background:"#f0fdf4",border:"none",borderRadius:"12px",padding:"8px 14px",fontSize:"13px",fontWeight:"600",color:"#2e7d32",cursor:"pointer",WebkitUserSelect:"none"}}>📦 Baza</button>
+            <button onClick={() => signOut(auth)} style={{background:"#f5f5f5",border:"none",borderRadius:"12px",padding:"8px 14px",fontSize:"13px",fontWeight:"600",color:"#555",cursor:"pointer",WebkitUserSelect:"none"}}>Wyloguj</button>
           </div>
         </div>
         <div style={{maxWidth:"500px",margin:"0 auto",background:"#f5f5f5",borderRadius:"14px",padding:"12px 16px",display:"flex",alignItems:"center",gap:"10px"}}>
@@ -87,15 +87,15 @@ export default function Listy() {
             style={{flex:1,border:"none",background:"transparent",fontSize:"15px",outline:"none",color:"#333"}}
           />
           {nowaLista && (
-            <button onClick={dodajListe} style={{background:"#1a1a1a",color:"white",border:"none",borderRadius:"10px",padding:"6px 14px",fontSize:"14px",fontWeight:"700",cursor:"pointer"}}>Dodaj</button>
+            <button onClick={dodajListe} style={{background:"#1a1a1a",color:"white",border:"none",borderRadius:"10px",padding:"6px 14px",fontSize:"14px",fontWeight:"700",cursor:"pointer",WebkitUserSelect:"none"}}>Dodaj</button>
           )}
         </div>
       </div>
 
       <div style={{maxWidth:"500px",margin:"0 auto",padding:"16px"}}>
         {listy.map((lista, i) => (
-          <div key={lista.id} style={{background:"white",borderRadius:"20px",padding:"16px",display:"flex",alignItems:"center",gap:"14px",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",marginBottom:"10px"}}>
-            <div onClick={() => router.push(`/listy/${lista.id}`)} style={{display:"flex",alignItems:"center",gap:"14px",flex:1,cursor:"pointer"}}>
+          <div key={lista.id} style={{background:"white",borderRadius:"20px",padding:"16px",display:"flex",alignItems:"center",gap:"14px",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",marginBottom:"10px",userSelect:"none"}}>
+            <div onClick={() => router.push(`/listy/${lista.id}`)} style={{display:"flex",alignItems:"center",gap:"14px",flex:1,cursor:"pointer",WebkitUserSelect:"none"}}>
               <div style={{width:"50px",height:"50px",borderRadius:"16px",background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"24px",flexShrink:0}}>
                 {ikony[i % ikony.length]}
               </div>
