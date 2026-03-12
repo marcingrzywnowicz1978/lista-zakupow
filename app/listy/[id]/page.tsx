@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
-import { doc, collection, addDoc, onSnapshot, updateDoc, deleteDoc } from "firebase/firestore";
+import { doc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, where } from "firebase/firestore";
 import { PRODUKTY_BAZA, ProduktBaza } from "@/lib/produktyBaza";
 
 type Status = "do_kupienia" | "w_trakcie" | "kupione";
@@ -32,6 +32,8 @@ export default function ListaZakupow() {
   const router = useRouter();
   const [produkty, setProdukty] = useState<Produkt[]>([]);
   const [lista, setLista] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
+  const [wlasneProdukty, setWlasneProdukty] = useState<ProduktBaza[]>([]);
   const [nowyProdukt, setNowyProdukt] = useState("");
   const [kategoria, setKategoria] = useState("Inne");
   const [ilosc, setIlosc] = useState(1);
@@ -39,16 +41,22 @@ export default function ListaZakupow() {
   const [cena, setCena] = useState("");
   const [pokazForm, setPokazForm] = useState(false);
 
-  const podpowiedzi = useMemo(() => {
-    if (!nowyProdukt || nowyProdukt.length < 2) return [];
-    const q = nowyProdukt.toLowerCase();
-    return PRODUKTY_BAZA.filter(p => p.nazwa.toLowerCase().includes(q)).slice(0, 5);
-  }, [nowyProdukt]);
-
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged((u) => { if (!u) router.push("/"); });
+    const unsub = auth.onAuthStateChanged((u) => {
+      if (!u) { router.push("/"); return; }
+      setUser(u);
+    });
     return unsub;
   }, [router]);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, "produktyUzytkownika"), where("uid", "==", user.uid));
+    const unsub = onSnapshot(q, (snap) => {
+      setWlasneProdukty(snap.docs.map(d => d.data() as ProduktBaza));
+    });
+    return unsub;
+  }, [user]);
 
   useEffect(() => {
     if (!id) return;
@@ -65,6 +73,18 @@ export default function ListaZakupow() {
     });
     return unsub;
   }, [id]);
+
+  const wszystkieProdukty = useMemo(() => {
+    const nazwyWbudowane = new Set(PRODUKTY_BAZA.map(p => p.nazwa.toLowerCase()));
+    const unikalne = wlasneProdukty.filter(p => !nazwyWbudowane.has(p.nazwa.toLowerCase()));
+    return [...PRODUKTY_BAZA, ...unikalne];
+  }, [wlasneProdukty]);
+
+  const podpowiedzi = useMemo(() => {
+    if (!nowyProdukt || nowyProdukt.length < 2) return [];
+    const q = nowyProdukt.toLowerCase();
+    return wszystkieProdukty.filter(p => p.nazwa.toLowerCase().includes(q)).slice(0, 6);
+  }, [nowyProdukt, wszystkieProdukty]);
 
   const wybierzPodpowiedz = (p: ProduktBaza) => {
     setNowyProdukt(p.nazwa);
@@ -83,6 +103,16 @@ export default function ListaZakupow() {
         nazwa: nowyProdukt.trim(), kategoria, ilosc, jednostka,
         cena: cena ? parseFloat(cena) : 0, status: "do_kupienia",
       });
+      const wBazie = wszystkieProdukty.find(p => p.nazwa.toLowerCase() === nowyProdukt.toLowerCase());
+      if (!wBazie && user) {
+        await addDoc(collection(db, "produktyUzytkownika"), {
+          uid: user.uid,
+          nazwa: nowyProdukt.trim(),
+          kategoria,
+          jednostka,
+          cena: cena ? parseFloat(cena) : 0,
+        });
+      }
     }
     setNowyProdukt(""); setIlosc(1); setCena(""); setPokazForm(false);
   };
@@ -176,7 +206,6 @@ export default function ListaZakupow() {
           <div onClick={e => e.stopPropagation()} style={{background:"white",width:"100%",maxWidth:"500px",margin:"0 auto",borderRadius:"28px 28px 0 0",padding:"24px",maxHeight:"90vh",overflowY:"auto"}}>
             <div style={{width:"40px",height:"4px",background:"#e0e0e0",borderRadius:"4px",margin:"0 auto 20px"}}></div>
             <h2 style={{fontSize:"20px",fontWeight:"800",color:"#1a1a1a",marginBottom:"16px"}}>Dodaj produkt</h2>
-            
             <div style={{position:"relative",marginBottom:"10px"}}>
               <input value={nowyProdukt} onChange={e => setNowyProdukt(e.target.value)} placeholder="Szukaj lub wpisz nazwę..." autoFocus
                 style={{width:"100%",border:"1.5px solid #e0e0e0",borderRadius:"14px",padding:"14px 16px",fontSize:"16px",outline:"none",boxSizing:"border-box"}} />
@@ -187,15 +216,14 @@ export default function ListaZakupow() {
                       style={{padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid #f5f5f5",cursor:"pointer"}}>
                       <div>
                         <div style={{fontWeight:"600",fontSize:"15px",color:"#1a1a1a"}}>{p.nazwa}</div>
-                        <div style={{fontSize:"12px",color:"#aaa"}}>{KAT_EMOJI[p.kategoria]} {p.kategoria} · {p.jednostka}</div>
+                        <div style={{fontSize:"12px",color:"#aaa"}}>{KAT_EMOJI[p.kategoria] || "📦"} {p.kategoria} · {p.jednostka}</div>
                       </div>
-                      <div style={{fontSize:"13px",fontWeight:"700",color:"#2e7d32"}}>{p.cena.toFixed(2)} zł</div>
+                      {p.cena > 0 && <div style={{fontSize:"13px",fontWeight:"700",color:"#2e7d32"}}>{p.cena.toFixed(2)} zł</div>}
                     </div>
                   ))}
                 </div>
               )}
             </div>
-
             <select value={kategoria} onChange={e => setKategoria(e.target.value)}
               style={{width:"100%",border:"1.5px solid #e0e0e0",borderRadius:"14px",padding:"14px 16px",fontSize:"15px",outline:"none",marginBottom:"10px",boxSizing:"border-box",background:"white",color:"#333"}}>
               {KATEGORIE.map(k => <option key={k}>{k}</option>)}
