@@ -119,7 +119,7 @@ export default function ListaZakupow() {
   const resetujListe = async () => {
     const batch = writeBatch(db);
     produkty.forEach(p => {
-      batch.update(doc(db, "listy", id as string, "produkty", p.id), { status: "do_kupienia" });
+      if (p.status === "kupione") batch.delete(doc(db, "listy", id as string, "produkty", p.id)); else batch.update(doc(db, "listy", id as string, "produkty", p.id), { status: "do_kupienia" });
     });
     await batch.commit();
     setPokazReset(false);
