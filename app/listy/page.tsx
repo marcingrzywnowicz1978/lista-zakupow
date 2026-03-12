@@ -59,7 +59,7 @@ export default function Listy() {
   const ikony = ["🛒","🧴","🎉","🍕","🏠","💊","🐾","👶"];
 
   return (
-    <main style={{minHeight:"100vh",background:"#f7f7f7",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
+    <main style={{userSelect:"none",WebkitUserSelect:"none",minHeight:"100vh",background:"#f7f7f7",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
       <div style={{background:"white",padding:"52px 20px 16px",borderBottom:"1px solid #f0f0f0"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",maxWidth:"500px",margin:"0 auto 16px"}}>
           <div>

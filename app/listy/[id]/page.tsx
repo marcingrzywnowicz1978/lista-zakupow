@@ -135,7 +135,7 @@ export default function ListaZakupow() {
   }, {} as Record<string, Produkt[]>);
 
   return (
-    <main style={{minHeight:"100vh",background:"#f7f7f7",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",paddingBottom:"100px"}}>
+    <main style={{userSelect:"none",WebkitUserSelect:"none",minHeight:"100vh",background:"#f7f7f7",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",paddingBottom:"100px"}}>
       <div style={{background:"white",padding:"48px 20px 0",borderBottom:"1px solid #f0f0f0"}}>
         <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"16px",maxWidth:"500px",margin:"0 auto 16px"}}>
           <button onClick={() => router.push("/listy")} style={{width:"36px",height:"36px",background:"#f5f5f5",border:"none",borderRadius:"12px",fontSize:"20px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
