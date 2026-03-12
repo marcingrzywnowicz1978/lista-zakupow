@@ -10,7 +10,6 @@ interface Lista {
   nazwa: string;
   wlasciciel: string;
   uzytkownicy: string[];
-  dataUtworzenia: any;
 }
 
 export default function Listy() {
@@ -48,34 +47,50 @@ export default function Listy() {
   };
 
   return (
-    <main className="min-h-screen bg-green-50 p-4 max-w-lg mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-green-700">🛒 Moje Listy</h1>
-        <button onClick={() => signOut(auth)} className="text-sm text-gray-400 hover:text-gray-600">Wyloguj</button>
-      </div>
-
-      <div className="flex gap-2 mb-6">
-        <input
-          value={nowaLista}
-          onChange={e => setNowaLista(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && dodajListe()}
-          placeholder="Nazwa nowej listy..."
-          className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-base outline-none focus:border-green-500"
-        />
-        <button onClick={dodajListe} className="bg-green-600 text-white px-4 py-3 rounded-xl font-bold text-xl hover:bg-green-700">+</button>
-      </div>
-
-      <div className="space-y-3">
-        {listy.map(lista => (
-          <div key={lista.id} onClick={() => router.push(`/listy/${lista.id}`)}
-            className="bg-white rounded-2xl shadow p-4 cursor-pointer hover:shadow-md transition">
-            <h2 className="text-lg font-semibold text-gray-800">{lista.nazwa}</h2>
-            <p className="text-sm text-gray-400 mt-1">Właściciel: {lista.wlasciciel}</p>
+    <main className="min-h-screen bg-gray-50">
+      <div className="bg-green-600 px-4 pt-12 pb-6">
+        <div className="flex justify-between items-center max-w-lg mx-auto">
+          <div>
+            <p className="text-green-200 text-sm">Cześć, {user?.displayName?.split(" ")[0]} 👋</p>
+            <h1 className="text-2xl font-bold text-white">Moje Listy</h1>
           </div>
-        ))}
-        {listy.length === 0 && (
-          <p className="text-center text-gray-400 mt-10">Brak list. Utwórz pierwszą!</p>
-        )}
+          <button onClick={() => signOut(auth)} className="bg-green-700 text-white text-sm px-3 py-2 rounded-xl">Wyloguj</button>
+        </div>
+      </div>
+
+      <div className="max-w-lg mx-auto px-4 -mt-4">
+        <div className="flex gap-2 mb-6">
+          <input
+            value={nowaLista}
+            onChange={e => setNowaLista(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && dodajListe()}
+            placeholder="Nazwa nowej listy..."
+            className="flex-1 bg-white border-0 rounded-2xl px-4 py-4 text-base shadow-md outline-none focus:ring-2 focus:ring-green-500"
+          />
+          <button onClick={dodajListe} className="bg-green-600 text-white w-14 h-14 rounded-2xl font-bold text-2xl shadow-md flex items-center justify-center active:scale-95 transition-transform">+</button>
+        </div>
+
+        <div className="space-y-3">
+          {listy.map(lista => (
+            <div key={lista.id} onClick={() => router.push(`/listy/${lista.id}`)}
+              className="bg-white rounded-2xl shadow-sm p-5 cursor-pointer active:scale-98 transition-transform border border-gray-100">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🛒</span>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-gray-800">{lista.nazwa}</h2>
+                  <p className="text-sm text-gray-400">{lista.wlasciciel}</p>
+                </div>
+                <span className="text-gray-300 text-xl">›</span>
+              </div>
+            </div>
+          ))}
+          {listy.length === 0 && (
+            <div className="text-center py-16">
+              <div className="text-6xl mb-4">🛍️</div>
+              <p className="text-gray-400 text-lg">Brak list. Utwórz pierwszą!</p>
+            </div>
+          )}
+        </div>
       </div>
     </main>
   );
