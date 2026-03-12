@@ -46,51 +46,54 @@ export default function Listy() {
     setNowaLista("");
   };
 
-  return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="bg-green-600 px-4 pt-12 pb-6">
-        <div className="flex justify-between items-center max-w-lg mx-auto">
-          <div>
-            <p className="text-green-200 text-sm">Cześć, {user?.displayName?.split(" ")[0]} 👋</p>
-            <h1 className="text-2xl font-bold text-white">Moje Listy</h1>
-          </div>
-          <button onClick={() => signOut(auth)} className="bg-green-700 text-white text-sm px-3 py-2 rounded-xl">Wyloguj</button>
-        </div>
-      </div>
+  const ikony = ["🛒","🧴","🎉","🍕","🏠","💊","🐾","👶"];
 
-      <div className="max-w-lg mx-auto px-4 -mt-4">
-        <div className="flex gap-2 mb-6">
+  return (
+    <main style={{minHeight:"100vh",background:"#f7f7f7",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
+      <div style={{background:"white",padding:"52px 20px 16px",borderBottom:"1px solid #f0f0f0"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",maxWidth:"500px",margin:"0 auto 16px"}}>
+          <div>
+            <p style={{fontSize:"13px",color:"#999"}}>Cześć, {user?.displayName?.split(" ")[0]} 👋</p>
+            <h1 style={{fontSize:"24px",fontWeight:"800",color:"#1a1a1a",letterSpacing:"-0.5px"}}>Moje Listy</h1>
+          </div>
+          <button onClick={() => signOut(auth)} style={{background:"#f5f5f5",border:"none",borderRadius:"12px",padding:"8px 14px",fontSize:"13px",fontWeight:"600",color:"#555",cursor:"pointer"}}>Wyloguj</button>
+        </div>
+        <div style={{maxWidth:"500px",margin:"0 auto",background:"#f5f5f5",borderRadius:"14px",padding:"12px 16px",display:"flex",alignItems:"center",gap:"10px"}}>
+          <span style={{fontSize:"16px"}}>🔍</span>
           <input
             value={nowaLista}
             onChange={e => setNowaLista(e.target.value)}
             onKeyDown={e => e.key === "Enter" && dodajListe()}
-            placeholder="Nazwa nowej listy..."
-            className="flex-1 bg-white border-0 rounded-2xl px-4 py-4 text-base shadow-md outline-none focus:ring-2 focus:ring-green-500"
+            placeholder="Nowa lista lub szukaj..."
+            style={{flex:1,border:"none",background:"transparent",fontSize:"15px",outline:"none",color:"#333"}}
           />
-          <button onClick={dodajListe} className="bg-green-600 text-white w-14 h-14 rounded-2xl font-bold text-2xl shadow-md flex items-center justify-center active:scale-95 transition-transform">+</button>
-        </div>
-
-        <div className="space-y-3">
-          {listy.map(lista => (
-            <div key={lista.id} onClick={() => router.push(`/listy/${lista.id}`)}
-              className="bg-white rounded-2xl shadow-sm p-5 cursor-pointer active:scale-98 transition-transform border border-gray-100">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🛒</span>
-                <div className="flex-1">
-                  <h2 className="text-lg font-semibold text-gray-800">{lista.nazwa}</h2>
-                  <p className="text-sm text-gray-400">{lista.wlasciciel}</p>
-                </div>
-                <span className="text-gray-300 text-xl">›</span>
-              </div>
-            </div>
-          ))}
-          {listy.length === 0 && (
-            <div className="text-center py-16">
-              <div className="text-6xl mb-4">🛍️</div>
-              <p className="text-gray-400 text-lg">Brak list. Utwórz pierwszą!</p>
-            </div>
+          {nowaLista && (
+            <button onClick={dodajListe} style={{background:"#1a1a1a",color:"white",border:"none",borderRadius:"10px",padding:"6px 14px",fontSize:"14px",fontWeight:"700",cursor:"pointer"}}>Dodaj</button>
           )}
         </div>
+      </div>
+
+      <div style={{maxWidth:"500px",margin:"0 auto",padding:"16px"}}>
+        {listy.map((lista, i) => (
+          <div key={lista.id} onClick={() => router.push(`/listy/${lista.id}`)}
+            style={{background:"white",borderRadius:"20px",padding:"16px",display:"flex",alignItems:"center",gap:"14px",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",marginBottom:"10px",cursor:"pointer"}}>
+            <div style={{width:"50px",height:"50px",borderRadius:"16px",background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"24px",flexShrink:0}}>
+              {ikony[i % ikony.length]}
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:"16px",fontWeight:"700",color:"#1a1a1a"}}>{lista.nazwa}</div>
+              <div style={{fontSize:"12px",color:"#aaa",marginTop:"2px"}}>{lista.wlasciciel}</div>
+            </div>
+            <span style={{fontSize:"20px",color:"#ddd"}}>›</span>
+          </div>
+        ))}
+        {listy.length === 0 && (
+          <div style={{textAlign:"center",padding:"60px 0"}}>
+            <div style={{fontSize:"60px",marginBottom:"16px"}}>🛍️</div>
+            <p style={{color:"#aaa",fontSize:"17px",fontWeight:"600"}}>Brak list</p>
+            <p style={{color:"#ccc",fontSize:"14px",marginTop:"4px"}}>Wpisz nazwę i naciśnij Enter</p>
+          </div>
+        )}
       </div>
     </main>
   );

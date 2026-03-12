@@ -17,12 +17,13 @@ interface Produkt {
 }
 
 const STATUSY = {
-  do_kupienia: { emoji: "⬜", kolor: "bg-gray-100 text-gray-500", next: "w_trakcie" as Status },
-  w_trakcie: { emoji: "🔄", kolor: "bg-yellow-100 text-yellow-700", next: "kupione" as Status },
-  kupione: { emoji: "✅", kolor: "bg-green-100 text-green-700", next: "do_kupienia" as Status },
+  do_kupienia: { emoji: "⬜", next: "w_trakcie" as Status },
+  w_trakcie: { emoji: "🔄", next: "kupione" as Status },
+  kupione: { emoji: "✅", next: "do_kupienia" as Status },
 };
 
 const KATEGORIE = ["Pieczywo","Nabiał","Warzywa","Owoce","Mięso","Napoje","Chemia","Kosmetyki","Mrożonki","Sypkie","Inne"];
+const KAT_EMOJI: Record<string,string> = {Pieczywo:"🍞",Nabiał:"🥛",Warzywa:"🥦",Owoce:"🍎",Mięso:"🥩",Napoje:"🥤",Chemia:"🧴",Kosmetyki:"💄",Mrożonki:"❄️",Sypkie:"🌾",Inne:"📦"};
 const JEDNOSTKI = ["szt.","opak.","kg","g","l","ml"];
 
 export default function ListaZakupow() {
@@ -38,9 +39,7 @@ export default function ListaZakupow() {
   const [pokazForm, setPokazForm] = useState(false);
 
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged((u) => {
-      if (!u) router.push("/");
-    });
+    const unsub = auth.onAuthStateChanged((u) => { if (!u) router.push("/"); });
     return unsub;
   }, [router]);
 
@@ -75,124 +74,124 @@ export default function ListaZakupow() {
   };
 
   const zmienStatus = async (p: Produkt) => {
-    await updateDoc(doc(db, "listy", id as string, "produkty", p.id), {
-      status: STATUSY[p.status].next,
-    });
+    await updateDoc(doc(db, "listy", id as string, "produkty", p.id), { status: STATUSY[p.status].next });
   };
 
   const zmienIlosc = async (p: Produkt, delta: number) => {
     const nowa = p.ilosc + delta;
-    if (nowa <= 0) {
-      await deleteDoc(doc(db, "listy", id as string, "produkty", p.id));
-      return;
-    }
+    if (nowa <= 0) { await deleteDoc(doc(db, "listy", id as string, "produkty", p.id)); return; }
     await updateDoc(doc(db, "listy", id as string, "produkty", p.id), { ilosc: nowa });
   };
 
   const suma = produkty.reduce((s, p) => s + (p.cena * p.ilosc), 0);
   const kupione = produkty.filter(p => p.status === "kupione");
+  const kupioneSuma = kupione.reduce((s, p) => s + p.cena * p.ilosc, 0);
+  const progress = produkty.length > 0 ? Math.round((kupione.length / produkty.length) * 100) : 0;
   const grupy = produkty.reduce((acc, p) => {
     if (!acc[p.kategoria]) acc[p.kategoria] = [];
     acc[p.kategoria].push(p); return acc;
   }, {} as Record<string, Produkt[]>);
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-28">
-      <div className="bg-green-600 px-4 pt-10 pb-6">
-        <div className="flex items-center gap-3 max-w-lg mx-auto">
-          <button onClick={() => router.push("/listy")} className="text-white text-2xl w-10 h-10 flex items-center justify-center rounded-xl bg-green-700">‹</button>
-          <h1 className="text-xl font-bold text-white flex-1">{lista?.nazwa}</h1>
+    <main style={{minHeight:"100vh",background:"#f7f7f7",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",paddingBottom:"100px"}}>
+      <div style={{background:"white",padding:"48px 20px 0",borderBottom:"1px solid #f0f0f0"}}>
+        <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"16px",maxWidth:"500px",margin:"0 auto 16px"}}>
+          <button onClick={() => router.push("/listy")} style={{width:"36px",height:"36px",background:"#f5f5f5",border:"none",borderRadius:"12px",fontSize:"20px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
+          <h1 style={{fontSize:"20px",fontWeight:"800",color:"#1a1a1a",flex:1,letterSpacing:"-0.5px"}}>{lista?.nazwa}</h1>
         </div>
+
+        <div style={{maxWidth:"500px",margin:"0 auto"}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:"12px",color:"#aaa",marginBottom:"6px"}}>
+            <span>{kupione.length} z {produkty.length} kupionych</span>
+            <span>{progress}%</span>
+          </div>
+          <div style={{background:"#f0f0f0",borderRadius:"8px",height:"6px",marginBottom:"12px"}}>
+            <div style={{background:"#2e7d32",height:"6px",borderRadius:"8px",width:`${progress}%`,transition:"width 0.3s"}}></div>
+          </div>
+        </div>
+
         {suma > 0 && (
-          <div className="max-w-lg mx-auto mt-4 grid grid-cols-3 gap-2">
+          <div style={{maxWidth:"500px",margin:"0 auto 16px",background:"#1a1a1a",borderRadius:"16px",padding:"12px 16px",display:"flex",justifyContent:"space-between"}}>
             {[
-              { label: "Łącznie", value: suma, color: "text-white" },
-              { label: "Kupione", value: kupione.reduce((s,p) => s + p.cena * p.ilosc, 0), color: "text-green-200" },
-              { label: "Pozostało", value: suma - kupione.reduce((s,p) => s + p.cena * p.ilosc, 0), color: "text-yellow-200" },
+              {label:"Łącznie",value:suma,color:"white"},
+              {label:"Kupione",value:kupioneSuma,color:"#69f0ae"},
+              {label:"Zostało",value:suma-kupioneSuma,color:"#ffd740"},
             ].map(item => (
-              <div key={item.label} className="bg-green-700 rounded-xl p-2 text-center">
-                <p className="text-green-300 text-xs">{item.label}</p>
-                <p className={`font-bold text-sm ${item.color}`}>{item.value.toFixed(2)} zł</p>
+              <div key={item.label} style={{textAlign:"center"}}>
+                <div style={{fontSize:"10px",color:"#888",textTransform:"uppercase",letterSpacing:"0.5px"}}>{item.label}</div>
+                <div style={{fontSize:"15px",fontWeight:"800",color:item.color}}>{item.value.toFixed(2)} zł</div>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
+      <div style={{maxWidth:"500px",margin:"0 auto",padding:"16px"}}>
         {Object.entries(grupy).map(([kat, prod]) => (
-          <div key={kat}>
-            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">{kat}</h2>
-            <div className="space-y-2">
-              {prod.map(p => (
-                <div key={p.id} className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-4 transition-opacity ${p.status === "kupione" ? "opacity-40" : ""}`}>
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => zmienStatus(p)} className="text-2xl w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 active:scale-90 transition-transform">
-                      {STATUSY[p.status].emoji}
-                    </button>
-                    <span className={`flex-1 font-medium text-gray-800 ${p.status === "kupione" ? "line-through text-gray-400" : ""}`}>{p.nazwa}</span>
-                    {p.cena > 0 && <span className="text-sm text-gray-400 font-medium">{(p.cena * p.ilosc).toFixed(2)} zł</span>}
-                  </div>
-                  <div className="flex items-center gap-2 mt-3 ml-13">
-                    <button onClick={() => zmienIlosc(p, -1)} className="w-9 h-9 bg-gray-100 rounded-xl font-bold text-lg flex items-center justify-center active:scale-90 transition-transform">−</button>
-                    <span className="font-semibold text-gray-700 min-w-16 text-center">{p.ilosc} {p.jednostka}</span>
-                    <button onClick={() => zmienIlosc(p, 1)} className="w-9 h-9 bg-gray-100 rounded-xl font-bold text-lg flex items-center justify-center active:scale-90 transition-transform">+</button>
+          <div key={kat} style={{marginBottom:"16px"}}>
+            <div style={{fontSize:"11px",fontWeight:"800",color:"#bbb",textTransform:"uppercase",letterSpacing:"1px",padding:"0 4px",marginBottom:"8px"}}>
+              {KAT_EMOJI[kat] || "📦"} {kat}
+            </div>
+            {prod.map(p => (
+              <div key={p.id} style={{background:"white",borderRadius:"16px",padding:"12px 14px",display:"flex",alignItems:"center",gap:"10px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",marginBottom:"8px",opacity:p.status==="kupione"?0.4:1,transition:"opacity 0.2s"}}>
+                <button onClick={() => zmienStatus(p)} style={{width:"38px",height:"38px",background:"#f5f5f5",border:"none",borderRadius:"12px",fontSize:"20px",cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {STATUSY[p.status].emoji}
+                </button>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:"15px",fontWeight:"600",color:"#1a1a1a",textDecoration:p.status==="kupione"?"line-through":"none",marginBottom:"6px"}}>{p.nazwa}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+                    <button onClick={() => zmienIlosc(p,-1)} style={{width:"28px",height:"28px",background:"#f5f5f5",border:"none",borderRadius:"8px",fontSize:"16px",fontWeight:"700",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#555"}}>−</button>
+                    <span style={{fontSize:"13px",fontWeight:"700",color:"#333",minWidth:"48px",textAlign:"center"}}>{p.ilosc} {p.jednostka}</span>
+                    <button onClick={() => zmienIlosc(p,1)} style={{width:"28px",height:"28px",background:"#f5f5f5",border:"none",borderRadius:"8px",fontSize:"16px",fontWeight:"700",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#555"}}>+</button>
                   </div>
                 </div>
-              ))}
-            </div>
+                {p.cena > 0 && <div style={{fontSize:"12px",color:"#aaa",fontWeight:"600",flexShrink:0}}>{(p.cena*p.ilosc).toFixed(2)} zł</div>}
+              </div>
+            ))}
           </div>
         ))}
         {produkty.length === 0 && (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">📝</div>
-            <p className="text-gray-400 text-lg">Lista jest pusta</p>
-            <p className="text-gray-300">Dodaj pierwszy produkt</p>
+          <div style={{textAlign:"center",padding:"60px 0"}}>
+            <div style={{fontSize:"60px",marginBottom:"16px"}}>📝</div>
+            <p style={{color:"#aaa",fontSize:"17px",fontWeight:"600"}}>Lista jest pusta</p>
+            <p style={{color:"#ccc",fontSize:"14px",marginTop:"4px"}}>Dodaj pierwszy produkt</p>
           </div>
         )}
       </div>
 
       {pokazForm && (
-        <div className="fixed inset-0 bg-black/60 flex items-end z-50" onClick={() => setPokazForm(false)}>
-          <div className="bg-white w-full rounded-t-3xl p-6 space-y-4 max-w-lg mx-auto" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-2"></div>
-            <h2 className="font-bold text-xl text-gray-800">Dodaj produkt</h2>
-            <input
-              value={nowyProdukt}
-              onChange={e => setNowyProdukt(e.target.value)}
-              placeholder="Nazwa produktu *"
-              autoFocus
-              className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-base outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
-            />
+        <div onClick={() => setPokazForm(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"flex-end",zIndex:50}}>
+          <div onClick={e => e.stopPropagation()} style={{background:"white",width:"100%",maxWidth:"500px",margin:"0 auto",borderRadius:"28px 28px 0 0",padding:"24px"}}>
+            <div style={{width:"40px",height:"4px",background:"#e0e0e0",borderRadius:"4px",margin:"0 auto 20px"}}></div>
+            <h2 style={{fontSize:"20px",fontWeight:"800",color:"#1a1a1a",marginBottom:"16px"}}>Dodaj produkt</h2>
+            <input value={nowyProdukt} onChange={e => setNowyProdukt(e.target.value)} placeholder="Nazwa produktu *" autoFocus
+              style={{width:"100%",border:"1.5px solid #e0e0e0",borderRadius:"14px",padding:"14px 16px",fontSize:"16px",outline:"none",marginBottom:"10px",boxSizing:"border-box"}} />
             <select value={kategoria} onChange={e => setKategoria(e.target.value)}
-              className="w-full border border-gray-200 rounded-2xl px-4 py-4 outline-none focus:border-green-500 text-gray-700">
+              style={{width:"100%",border:"1.5px solid #e0e0e0",borderRadius:"14px",padding:"14px 16px",fontSize:"15px",outline:"none",marginBottom:"10px",boxSizing:"border-box",background:"white",color:"#333"}}>
               {KATEGORIE.map(k => <option key={k}>{k}</option>)}
             </select>
-            <div className="flex gap-2">
-              <div className="flex items-center bg-gray-50 rounded-2xl border border-gray-200 flex-1">
-                <button onClick={() => setIlosc(Math.max(1, ilosc-1))} className="w-10 h-12 flex items-center justify-center text-xl font-bold text-gray-500">−</button>
-                <span className="flex-1 text-center font-semibold">{ilosc}</span>
-                <button onClick={() => setIlosc(ilosc+1)} className="w-10 h-12 flex items-center justify-center text-xl font-bold text-gray-500">+</button>
+            <div style={{display:"flex",gap:"8px",marginBottom:"16px"}}>
+              <div style={{display:"flex",alignItems:"center",background:"#f5f5f5",borderRadius:"14px",flex:1}}>
+                <button onClick={() => setIlosc(Math.max(1,ilosc-1))} style={{width:"44px",height:"48px",border:"none",background:"transparent",fontSize:"20px",fontWeight:"700",cursor:"pointer",color:"#555"}}>−</button>
+                <span style={{flex:1,textAlign:"center",fontWeight:"700",fontSize:"16px"}}>{ilosc}</span>
+                <button onClick={() => setIlosc(ilosc+1)} style={{width:"44px",height:"48px",border:"none",background:"transparent",fontSize:"20px",fontWeight:"700",cursor:"pointer",color:"#555"}}>+</button>
               </div>
               <select value={jednostka} onChange={e => setJednostka(e.target.value)}
-                className="border border-gray-200 rounded-2xl px-3 py-4 outline-none focus:border-green-500 text-gray-700">
+                style={{border:"1.5px solid #e0e0e0",borderRadius:"14px",padding:"0 12px",fontSize:"15px",outline:"none",background:"white",color:"#333"}}>
                 {JEDNOSTKI.map(j => <option key={j}>{j}</option>)}
               </select>
-              <input type="number" value={cena} onChange={e => setCena(e.target.value)} placeholder="Cena zł"
-                className="w-24 border border-gray-200 rounded-2xl px-3 py-4 outline-none focus:border-green-500 text-center" />
+              <input type="number" value={cena} onChange={e => setCena(e.target.value)} placeholder="Cena"
+                style={{width:"80px",border:"1.5px solid #e0e0e0",borderRadius:"14px",padding:"0 12px",fontSize:"15px",outline:"none",textAlign:"center"}} />
             </div>
-            <div className="flex gap-3 pt-2">
-              <button onClick={() => setPokazForm(false)} className="flex-1 py-4 rounded-2xl border border-gray-200 font-semibold text-gray-600 active:scale-95 transition-transform">Anuluj</button>
-              <button onClick={dodajProdukt} className="flex-1 py-4 rounded-2xl bg-green-600 text-white font-semibold shadow-lg active:scale-95 transition-transform">Dodaj</button>
+            <div style={{display:"flex",gap:"10px"}}>
+              <button onClick={() => setPokazForm(false)} style={{flex:1,padding:"16px",borderRadius:"14px",border:"1.5px solid #e0e0e0",background:"white",fontSize:"15px",fontWeight:"700",color:"#555",cursor:"pointer"}}>Anuluj</button>
+              <button onClick={dodajProdukt} style={{flex:1,padding:"16px",borderRadius:"14px",border:"none",background:"#1a1a1a",color:"white",fontSize:"15px",fontWeight:"700",cursor:"pointer"}}>Dodaj</button>
             </div>
           </div>
         </div>
       )}
 
-      <button onClick={() => setPokazForm(true)}
-        className="fixed bottom-6 right-6 bg-green-600 text-white w-16 h-16 rounded-full text-3xl shadow-2xl flex items-center justify-center active:scale-90 transition-transform z-40">
-        +
-      </button>
+      <button onClick={() => setPokazForm(true)} style={{position:"fixed",bottom:"24px",right:"24px",width:"60px",height:"60px",background:"#1a1a1a",color:"white",border:"none",borderRadius:"20px",fontSize:"28px",cursor:"pointer",boxShadow:"0 8px 24px rgba(0,0,0,0.25)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:40}}>+</button>
     </main>
   );
 }
