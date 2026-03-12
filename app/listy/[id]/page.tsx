@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
-import { doc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, where } from "firebase/firestore";
+import { doc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, where, writeBatch } from "firebase/firestore";
 import { PRODUKTY_BAZA, ProduktBaza } from "@/lib/produktyBaza";
 
 type Status = "do_kupienia" | "w_trakcie" | "kupione";
@@ -40,12 +40,10 @@ export default function ListaZakupow() {
   const [jednostka, setJednostka] = useState("szt.");
   const [cena, setCena] = useState("");
   const [pokazForm, setPokazForm] = useState(false);
+  const [pokazReset, setPokazReset] = useState(false);
 
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged((u) => {
-      if (!u) { router.push("/"); return; }
-      setUser(u);
-    });
+    const unsub = auth.onAuthStateChanged((u) => { if (!u) { router.push("/"); return; } setUser(u); });
     return unsub;
   }, [router]);
 
@@ -60,9 +58,7 @@ export default function ListaZakupow() {
 
   useEffect(() => {
     if (!id) return;
-    const unsub = onSnapshot(doc(db, "listy", id as string), (d) => {
-      setLista({ id: d.id, ...d.data() });
-    });
+    const unsub = onSnapshot(doc(db, "listy", id as string), (d) => { setLista({ id: d.id, ...d.data() }); });
     return unsub;
   }, [id]);
 
@@ -87,10 +83,7 @@ export default function ListaZakupow() {
   }, [nowyProdukt, wszystkieProdukty]);
 
   const wybierzPodpowiedz = (p: ProduktBaza) => {
-    setNowyProdukt(p.nazwa);
-    setKategoria(p.kategoria);
-    setJednostka(p.jednostka);
-    setCena(p.cena.toString());
+    setNowyProdukt(p.nazwa); setKategoria(p.kategoria); setJednostka(p.jednostka); setCena(p.cena.toString());
   };
 
   const dodajProdukt = async () => {
@@ -106,11 +99,7 @@ export default function ListaZakupow() {
       const wBazie = wszystkieProdukty.find(p => p.nazwa.toLowerCase() === nowyProdukt.toLowerCase());
       if (!wBazie && user) {
         await addDoc(collection(db, "produktyUzytkownika"), {
-          uid: user.uid,
-          nazwa: nowyProdukt.trim(),
-          kategoria,
-          jednostka,
-          cena: cena ? parseFloat(cena) : 0,
+          uid: user.uid, nazwa: nowyProdukt.trim(), kategoria, jednostka, cena: cena ? parseFloat(cena) : 0,
         });
       }
     }
@@ -125,6 +114,15 @@ export default function ListaZakupow() {
     const nowa = p.ilosc + delta;
     if (nowa <= 0) { await deleteDoc(doc(db, "listy", id as string, "produkty", p.id)); return; }
     await updateDoc(doc(db, "listy", id as string, "produkty", p.id), { ilosc: nowa });
+  };
+
+  const resetujListe = async () => {
+    const batch = writeBatch(db);
+    produkty.forEach(p => {
+      batch.update(doc(db, "listy", id as string, "produkty", p.id), { status: "do_kupienia" });
+    });
+    await batch.commit();
+    setPokazReset(false);
   };
 
   const suma = produkty.reduce((s, p) => s + (p.cena * p.ilosc), 0);
@@ -142,6 +140,9 @@ export default function ListaZakupow() {
         <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"16px",maxWidth:"500px",margin:"0 auto 16px"}}>
           <button onClick={() => router.push("/listy")} style={{width:"36px",height:"36px",background:"#f5f5f5",border:"none",borderRadius:"12px",fontSize:"20px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
           <h1 style={{fontSize:"20px",fontWeight:"800",color:"#1a1a1a",flex:1,letterSpacing:"-0.5px"}}>{lista?.nazwa}</h1>
+          {kupione.length > 0 && (
+            <button onClick={() => setPokazReset(true)} style={{background:"#f0fdf4",border:"none",borderRadius:"12px",padding:"8px 14px",fontSize:"13px",fontWeight:"600",color:"#2e7d32",cursor:"pointer"}}>🔄 Reset</button>
+          )}
         </div>
         <div style={{maxWidth:"500px",margin:"0 auto"}}>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:"12px",color:"#aaa",marginBottom:"6px"}}>
@@ -200,6 +201,20 @@ export default function ListaZakupow() {
           </div>
         )}
       </div>
+
+      {pokazReset && (
+        <div onClick={() => setPokazReset(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:50,padding:"20px"}}>
+          <div onClick={e => e.stopPropagation()} style={{background:"white",borderRadius:"24px",padding:"28px",maxWidth:"320px",width:"100%",textAlign:"center"}}>
+            <div style={{fontSize:"48px",marginBottom:"16px"}}>🛒</div>
+            <h2 style={{fontSize:"20px",fontWeight:"800",color:"#1a1a1a",marginBottom:"8px"}}>Nowe zakupy?</h2>
+            <p style={{fontSize:"14px",color:"#888",marginBottom:"24px"}}>Wszystkie produkty wrócą do statusu "do kupienia". Lista produktów zostanie zachowana.</p>
+            <div style={{display:"flex",gap:"10px"}}>
+              <button onClick={() => setPokazReset(false)} style={{flex:1,padding:"14px",borderRadius:"14px",border:"1.5px solid #e0e0e0",background:"white",fontSize:"15px",fontWeight:"700",color:"#555",cursor:"pointer"}}>Anuluj</button>
+              <button onClick={resetujListe} style={{flex:1,padding:"14px",borderRadius:"14px",border:"none",background:"#2e7d32",color:"white",fontSize:"15px",fontWeight:"700",cursor:"pointer"}}>Resetuj</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {pokazForm && (
         <div onClick={() => setPokazForm(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"flex-end",zIndex:50}}>
