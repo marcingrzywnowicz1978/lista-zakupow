@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { doc, collection, addDoc, onSnapshot, updateDoc, deleteDoc } from "firebase/firestore";
+import { PRODUKTY_BAZA, ProduktBaza } from "@/lib/produktyBaza";
 
 type Status = "do_kupienia" | "w_trakcie" | "kupione";
 
@@ -38,6 +39,12 @@ export default function ListaZakupow() {
   const [cena, setCena] = useState("");
   const [pokazForm, setPokazForm] = useState(false);
 
+  const podpowiedzi = useMemo(() => {
+    if (!nowyProdukt || nowyProdukt.length < 2) return [];
+    const q = nowyProdukt.toLowerCase();
+    return PRODUKTY_BAZA.filter(p => p.nazwa.toLowerCase().includes(q)).slice(0, 5);
+  }, [nowyProdukt]);
+
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((u) => { if (!u) router.push("/"); });
     return unsub;
@@ -58,6 +65,13 @@ export default function ListaZakupow() {
     });
     return unsub;
   }, [id]);
+
+  const wybierzPodpowiedz = (p: ProduktBaza) => {
+    setNowyProdukt(p.nazwa);
+    setKategoria(p.kategoria);
+    setJednostka(p.jednostka);
+    setCena(p.cena.toString());
+  };
 
   const dodajProdukt = async () => {
     if (!nowyProdukt.trim()) return;
@@ -99,7 +113,6 @@ export default function ListaZakupow() {
           <button onClick={() => router.push("/listy")} style={{width:"36px",height:"36px",background:"#f5f5f5",border:"none",borderRadius:"12px",fontSize:"20px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
           <h1 style={{fontSize:"20px",fontWeight:"800",color:"#1a1a1a",flex:1,letterSpacing:"-0.5px"}}>{lista?.nazwa}</h1>
         </div>
-
         <div style={{maxWidth:"500px",margin:"0 auto"}}>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:"12px",color:"#aaa",marginBottom:"6px"}}>
             <span>{kupione.length} z {produkty.length} kupionych</span>
@@ -109,7 +122,6 @@ export default function ListaZakupow() {
             <div style={{background:"#2e7d32",height:"6px",borderRadius:"8px",width:`${progress}%`,transition:"width 0.3s"}}></div>
           </div>
         </div>
-
         {suma > 0 && (
           <div style={{maxWidth:"500px",margin:"0 auto 16px",background:"#1a1a1a",borderRadius:"16px",padding:"12px 16px",display:"flex",justifyContent:"space-between"}}>
             {[
@@ -161,11 +173,29 @@ export default function ListaZakupow() {
 
       {pokazForm && (
         <div onClick={() => setPokazForm(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"flex-end",zIndex:50}}>
-          <div onClick={e => e.stopPropagation()} style={{background:"white",width:"100%",maxWidth:"500px",margin:"0 auto",borderRadius:"28px 28px 0 0",padding:"24px"}}>
+          <div onClick={e => e.stopPropagation()} style={{background:"white",width:"100%",maxWidth:"500px",margin:"0 auto",borderRadius:"28px 28px 0 0",padding:"24px",maxHeight:"90vh",overflowY:"auto"}}>
             <div style={{width:"40px",height:"4px",background:"#e0e0e0",borderRadius:"4px",margin:"0 auto 20px"}}></div>
             <h2 style={{fontSize:"20px",fontWeight:"800",color:"#1a1a1a",marginBottom:"16px"}}>Dodaj produkt</h2>
-            <input value={nowyProdukt} onChange={e => setNowyProdukt(e.target.value)} placeholder="Nazwa produktu *" autoFocus
-              style={{width:"100%",border:"1.5px solid #e0e0e0",borderRadius:"14px",padding:"14px 16px",fontSize:"16px",outline:"none",marginBottom:"10px",boxSizing:"border-box"}} />
+            
+            <div style={{position:"relative",marginBottom:"10px"}}>
+              <input value={nowyProdukt} onChange={e => setNowyProdukt(e.target.value)} placeholder="Szukaj lub wpisz nazwę..." autoFocus
+                style={{width:"100%",border:"1.5px solid #e0e0e0",borderRadius:"14px",padding:"14px 16px",fontSize:"16px",outline:"none",boxSizing:"border-box"}} />
+              {podpowiedzi.length > 0 && (
+                <div style={{position:"absolute",top:"100%",left:0,right:0,background:"white",borderRadius:"14px",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",zIndex:10,overflow:"hidden",marginTop:"4px"}}>
+                  {podpowiedzi.map((p, i) => (
+                    <div key={i} onClick={() => wybierzPodpowiedz(p)}
+                      style={{padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid #f5f5f5",cursor:"pointer"}}>
+                      <div>
+                        <div style={{fontWeight:"600",fontSize:"15px",color:"#1a1a1a"}}>{p.nazwa}</div>
+                        <div style={{fontSize:"12px",color:"#aaa"}}>{KAT_EMOJI[p.kategoria]} {p.kategoria} · {p.jednostka}</div>
+                      </div>
+                      <div style={{fontSize:"13px",fontWeight:"700",color:"#2e7d32"}}>{p.cena.toFixed(2)} zł</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <select value={kategoria} onChange={e => setKategoria(e.target.value)}
               style={{width:"100%",border:"1.5px solid #e0e0e0",borderRadius:"14px",padding:"14px 16px",fontSize:"15px",outline:"none",marginBottom:"10px",boxSizing:"border-box",background:"white",color:"#333"}}>
               {KATEGORIE.map(k => <option key={k}>{k}</option>)}
