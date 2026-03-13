@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
-import { collection, addDoc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, query, where, onSnapshot, serverTimestamp, getDocs } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
 interface Lista {
@@ -17,6 +17,7 @@ export default function Listy() {
   const [nowaLista, setNowaLista] = useState("");
   const [user, setUser] = useState<any>(null);
   const [liczbZaproszen, setLiczbZaproszen] = useState(0);
+  const [liczbyProduktow, setLiczbyProduktow] = useState<Record<string, number>>({});
   const router = useRouter();
 
   useEffect(() => {
@@ -57,6 +58,19 @@ export default function Listy() {
   };
 
   const ikony = ["🛒","🧴","🎉","🍕","🏠","💊","🐾","👶"];
+
+  useEffect(() => {
+    if (!listy.length) return;
+    const fetchCounts = async () => {
+      const counts: Record<string, number> = {};
+      await Promise.all(listy.map(async (lista) => {
+        const snap = await getDocs(collection(db, "listy", lista.id, "produkty"));
+        counts[lista.id] = snap.size;
+      }));
+      setLiczbyProduktow(counts);
+    };
+    fetchCounts();
+  }, [listy]);
 
   return (
     <main style={{userSelect:"none",WebkitUserSelect:"none",minHeight:"100vh",background:"#f7f7f7",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
@@ -102,7 +116,7 @@ export default function Listy() {
               <div style={{flex:1}}>
                 <div style={{fontSize:"16px",fontWeight:"700",color:"#1a1a1a"}}>{lista.nazwa}</div>
                 <div style={{fontSize:"12px",color:"#aaa",marginTop:"2px"}}>
-                  {lista.uzytkownicy.length > 1 ? `👥 ${lista.uzytkownicy.length} osoby` : lista.wlasciciel}
+                  {lista.uzytkownicy.length > 1 ? `👥 ${lista.uzytkownicy.length} osoby` : lista.wlasciciel} · {liczbyProduktow[lista.id] ?? 0} prod.
                 </div>
               </div>
             </div>
