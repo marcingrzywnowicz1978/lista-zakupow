@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
-import { doc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, where, writeBatch } from "firebase/firestore";
+import { doc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query, where, writeBatch, setDoc, getDoc } from "firebase/firestore";
 import { PRODUKTY_BAZA, ProduktBaza } from "@/lib/produktyBaza";
 
 type Status = "do_kupienia" | "w_trakcie" | "kupione";
@@ -33,6 +33,13 @@ export default function ListaZakupow() {
   const [produkty, setProdukty] = useState<Produkt[]>([]);
   const [lista, setLista] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
+  const ADMIN_EMAIL = "marcin.grzywnowicz1978@gmail.com";
+  const [edytowanyProdukt, setEdytowanyProdukt] = useState<Produkt | null>(null);
+  const [editNazwa, setEditNazwa] = useState("");
+  const [editCena, setEditCena] = useState("");
+  const [editJednostka, setEditJednostka] = useState("");
+  const [editKategoria, setEditKategoria] = useState("");
+  const [holdTimer, setHoldTimer] = useState<NodeJS.Timeout | null>(null);
   const [wlasneProdukty, setWlasneProdukty] = useState<ProduktBaza[]>([]);
   const [nowyProdukt, setNowyProdukt] = useState("");
   const [kategoria, setKategoria] = useState("Inne");
@@ -116,6 +123,31 @@ export default function ListaZakupow() {
     await updateDoc(doc(db, "listy", id as string, "produkty", p.id), { ilosc: nowa });
   };
 
+  const rozpocznijPrzytrzymanie = (p: Produkt) => {
+    if (!user || user.email !== ADMIN_EMAIL) return;
+    const timer = setTimeout(() => {
+      setEdytowanyProdukt(p);
+      setEditNazwa(p.nazwa);
+      setEditCena(p.cena > 0 ? String(p.cena) : "");
+      setEditJednostka(p.jednostka);
+      setEditKategoria(p.kategoria);
+    }, 5000);
+    setHoldTimer(timer);
+  };
+  const anulujPrzytrzymanie = () => {
+    if (holdTimer) { clearTimeout(holdTimer); setHoldTimer(null); }
+  };
+  const zapiszEdycje = async () => {
+    if (!edytowanyProdukt) return;
+    await updateDoc(doc(db, "listy", id as string, "produkty", edytowanyProdukt.id), {
+      nazwa: editNazwa.trim(), cena: editCena ? parseFloat(editCena) : 0, jednostka: editJednostka, kategoria: editKategoria,
+    });
+    const docId = editNazwa.trim().toLowerCase().replace(/\s+/g, "_");
+    await setDoc(doc(db, "produktyUzytkownika", docId), {
+      uid: user.uid, nazwa: editNazwa.trim(), kategoria: editKategoria, jednostka: editJednostka, cena: editCena ? parseFloat(editCena) : 0,
+    }, { merge: true });
+    setEdytowanyProdukt(null);
+  };
   const resetujListe = async () => {
     const batch = writeBatch(db);
     produkty.forEach(p => {
@@ -176,7 +208,7 @@ export default function ListaZakupow() {
               {KAT_EMOJI[kat] || "📦"} {kat}
             </div>
             {prod.map(p => (
-              <div key={p.id} style={{background:"white",borderRadius:"16px",padding:"12px 14px",display:"flex",alignItems:"center",gap:"10px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",marginBottom:"8px",opacity:p.status==="kupione"?0.4:1,transition:"opacity 0.2s"}}>
+              <div key={p.id} onMouseDown={() => rozpocznijPrzytrzymanie(p)} onMouseUp={anulujPrzytrzymanie} onMouseLeave={anulujPrzytrzymanie} onTouchStart={() => rozpocznijPrzytrzymanie(p)} onTouchEnd={anulujPrzytrzymanie} style={{background:"white",borderRadius:"16px",padding:"12px 14px",display:"flex",alignItems:"center",gap:"10px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",marginBottom:"8px",opacity:p.status==="kupione"?0.4:1,transition:"opacity 0.2s"}}>
                 <button onClick={() => zmienStatus(p)} style={{width:"38px",height:"38px",background:"#f5f5f5",border:"none",borderRadius:"12px",fontSize:"20px",cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
                   {STATUSY[p.status].emoji}
                 </button>
@@ -264,7 +296,7 @@ export default function ListaZakupow() {
         </div>
       )}
 
-      <button onClick={() => setPokazForm(true)} style={{position:"fixed",bottom:"24px",right:"24px",width:"60px",height:"60px",background:"#1a1a1a",color:"white",border:"none",borderRadius:"20px",fontSize:"28px",cursor:"pointer",boxShadow:"0 8px 24px rgba(0,0,0,0.25)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:40}}>+</button>
+      {edytowanyProdukt && (<div onClick={() => setEdytowanyProdukt(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"flex-end",zIndex:50}}><div onClick={e => e.stopPropagation()} style={{background:"white",width:"100%",maxWidth:"500px",margin:"0 auto",borderRadius:"28px 28px 0 0",padding:"24px"}}><h3 style={{fontSize:"18px",fontWeight:"800",color:"#1a1a1a",marginBottom:"20px"}}>Edytuj produkt</h3><input value={editNazwa} onChange={e => setEditNazwa(e.target.value)} placeholder="Nazwa" style={{width:"100%",padding:"12px 16px",borderRadius:"12px",border:"1.5px solid #e0e0e0",fontSize:"15px",marginBottom:"12px",boxSizing:"border-box"}} /><input value={editCena} onChange={e => setEditCena(e.target.value)} placeholder="Cena" type="number" style={{width:"100%",padding:"12px 16px",borderRadius:"12px",border:"1.5px solid #e0e0e0",fontSize:"15px",marginBottom:"12px",boxSizing:"border-box"}} /><select value={editJednostka} onChange={e => setEditJednostka(e.target.value)} style={{width:"100%",padding:"12px 16px",borderRadius:"12px",border:"1.5px solid #e0e0e0",fontSize:"15px",marginBottom:"12px",boxSizing:"border-box"}}>{JEDNOSTKI.map(j => <option key={j} value={j}>{j}</option>)}</select><select value={editKategoria} onChange={e => setEditKategoria(e.target.value)} style={{width:"100%",padding:"12px 16px",borderRadius:"12px",border:"1.5px solid #e0e0e0",fontSize:"15px",marginBottom:"20px",boxSizing:"border-box"}}>{KATEGORIE.map(k => <option key={k} value={k}>{k}</option>)}</select><div style={{display:"flex",gap:"12px"}}><button onClick={() => setEdytowanyProdukt(null)} style={{flex:1,padding:"14px",borderRadius:"14px",border:"1.5px solid #e0e0e0",background:"white",fontSize:"15px",fontWeight:"700",color:"#555",cursor:"pointer"}}>Anuluj</button><button onClick={zapiszEdycje} style={{flex:1,padding:"14px",borderRadius:"14px",border:"none",background:"#2e7d32",color:"white",fontSize:"15px",fontWeight:"700",cursor:"pointer"}}>Zapisz</button></div></div></div>)}<button onClick={() => setPokazForm(true)} style={{position:"fixed",bottom:"24px",right:"24px",width:"60px",height:"60px",background:"#1a1a1a",color:"white",border:"none",borderRadius:"20px",fontSize:"28px",cursor:"pointer",boxShadow:"0 8px 24px rgba(0,0,0,0.25)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:40}}>+</button>
     </main>
   );
 }
